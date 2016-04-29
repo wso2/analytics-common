@@ -15,7 +15,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-var serverUrl = "https://"+location.hostname +":"+ location.port + "/admin-dashboard/modules/la/log-analyzer-proxy.jag;
+var serverUrl = "https://"+location.hostname +":"+ location.port + "/admin-dashboard/modules/la/log-analyzer-proxy.jag";
 var client = new AnalyticsClient().init(null, null, serverUrl);
 var div = "#tblArtifactDeleted";
 var table;
