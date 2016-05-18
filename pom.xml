@@ -53,12 +53,10 @@
         <module>components/filetail</module>
         <module>components/log4j</module>
         <module>components/spark-udf</module>
-        <module>components/util</module>
         <module>features/log-analyzer</module>
         <module>features/filetail</module>
         <module>features/log4j</module>
         <module>features/spark-udf</module>
-        <module>features/util</module>
 	</modules>
 
 	<repositories>
