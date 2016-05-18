@@ -35,6 +35,6 @@
         <handler class="org.wso2.carbon.apimgt.gateway.handlers.security.CORSRequestHandler">
             <property name="apiImplementationType" value="ENDPOINT"/>
         </handler>
-        <handler class="org.wso2.carbon.analytics.common.la.apim.DasProxyDetailsHandler"/>
+        <handler class="org.wso2.carbon.shared.analytics.la.apim.DasProxyDetailsHandler"/>
     </handlers>
 </api>
