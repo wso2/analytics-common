@@ -18,12 +18,11 @@
 var gatewayPort = location.port - 9443 + 8243; //Calculate the port offset based gateway port.
 var serverUrl = "https://" + location.hostname + ":" + gatewayPort + "/LogAnalyzerRestApi/1.0";
 var client = new AnalyticsClient().init(null, null, serverUrl);
-var div = "#tblArtifactDeployed";
-var table;
-var from = new Date(moment().subtract(29, 'days')).getTime();
-var to = new Date(moment()).getTime();
-var dataM = [];
-var initState = true;
+var canvasDiv = "#canvas";
+var timeFrom = gadgetUtil.timeFrom();
+var timeTo = gadgetUtil.timeTo();
+var receivedData = [];
+var nanoScrollerSelector = $(".nano");
 
 var meta = {
     "names": ["apiArtifact", "Frequency"],
@@ -50,77 +49,95 @@ function initialize() {
     fetch();
 }
 
-function getDefaultText() {
-    return '<div class="status-message">' +
-        '<div class="message message-info">' +
-        '<h4><i class="icon fw fw-info"></i>No content to display</h4>' +
-        '<p>Please select a date range to view stats.</p>' +
-        '</div>' +
-        '</div>';
-};
-
-function getEmptyRecordsText() {
-    return '<div class="status-message">' +
-        '<div class="message message-info">' +
-        '<h4><i class="icon fw fw-info"></i>No records found</h4>' +
-        '<p>Please select a date range to view stats.</p>' +
-        '</div>' +
-        '</div>';
-}
-
 $(document).ready(function () {
     initialize();
+    nanoScrollerSelector.nanoScroller();
 });
 
 function fetch() {
-    dataM.length = 0;
+    receivedData.length = 0;
     var queryInfo;
-    queryInfo = {
+    var queryForSearchCount = {
         tableName: "LOGANALYZER_APIM_ARTIFACT_DEPLOYED_DAILY",
         searchParams: {
-            query: "_timestamp: [" + from + " TO " + to + "]",
-            start: 0, //starting index of the matching record set
-            count: 100 //page size for pagination
+            query: "_timestamp: [" + timeFrom + " TO " + timeTo + "]",
         }
     };
-    client.search(queryInfo, function (d) {
-        var obj = JSON.parse(d["message"]);
+
+    client.searchCount(queryForSearchCount, function (d) {
         if (d["status"] === "success") {
-            for (var i = 0; i < obj.length; i++) {
-                dataM.push([obj[i].values.artifact, obj[i].values.artifactCount]);
-            }
-            if (!initState) {
-                redrawLogAPIMArtifactTableChart();
+            var totalRecordCount = d["message"];
+            if (totalRecordCount > 0) {
+                queryInfo = {
+                    tableName: "LOGANALYZER_APIM_ARTIFACT_DEPLOYED_DAILY",
+                    searchParams: {
+                        groupByField: "artifact",
+                        query: "_timestamp: [" + timeFrom + " TO " + timeTo + "]",
+                        aggregateFields: [
+                            {
+                                fields: ["artifactCount"], //Array of field names used as variables for aggregateFunction
+                                aggregate: "SUM", //Aggregate Function Name
+                                alias: "artifactCountSum"   //Alias given to the result after aggregation
+                            }
+                        ],
+                        aggregateLevel: 0,
+                        parentPath: [],
+                        noOfRecords: totalRecordCount
+                    }
+                };
+                client.searchWithAggregates(queryInfo, function (d) {
+                    var obj = JSON.parse(d["message"]);
+                    if (d["status"] === "success") {
+                        for (var i = 0; i < obj.length; i++) {
+                            receivedData.push([obj[i].values.artifact, obj[i].values.artifactCountSum]);
+                        }
+                        drawDeployedArtifactTable();
+                    }
+                }, function (error) {
+                    console.log(error);
+                    error.message = "Internal server error while data indexing.";
+                    onError(error);
+                });
             } else {
-                drawLogAPIMArtifactTableChart();
-                initState = false;
+                $(canvasDiv).html(gadgetUtil.getEmptyRecordsText());
             }
         }
     }, function (error) {
-        console.log("error occurred: " + error);
+        console.log(error);
+        error.message = "Internal server error while data indexing.";
+        onError(error);
     });
 }
 
-function drawLogAPIMArtifactTableChart() {
-    $(div).empty();
-    table = new vizg(
-        [
-            {
-                "metadata": this.meta,
-                "data": dataM
-            }
-        ],
-        configTable
-    );
-    table.draw(div);
-    var table2 = $('#ArtifactDeployed').DataTable();
-    $('#body').css('display', 'block');
-    table2.columns.adjust().draw();
-}
-
-function redrawLogAPIMArtifactTableChart() {
-    for (var i in dataM) {
-        table.insert([dataM[i]]);
+function drawDeployedArtifactTable() {
+    $(canvasDiv).empty();
+    try {
+        var table = new vizg(
+            [
+                {
+                    "metadata": this.meta,
+                    "data": receivedData
+                }
+            ],
+            configTable
+        );
+        table.draw(canvasDiv);
+        $('#ArtifactDeployed').DataTable({
+            dom: '<"dataTablesTop"' +
+            'f' +
+            '<"dataTables_toolbar">' +
+            '>' +
+            'rt' +
+            '<"dataTablesBottom"' +
+            'lip' +
+            '>'
+        });
+        nanoScrollerSelector[0].nanoscroller.reset();
+    } catch (error) {
+        console.log(error);
+        error.message = "Error while drawing table.";
+        error.status = "";
+        onError(error);
     }
 }
 
@@ -133,7 +150,11 @@ function subscribe(callback) {
 }
 
 subscribe(function (topic, data, subscriber) {
-    from = parseInt(data["timeFrom"]);
-    to = parseInt(data["timeTo"]);
+    timeFrom = parseInt(data["timeFrom"]);
+    timeTo = parseInt(data["timeTo"]);
     fetch();
 });
+
+function onError(msg) {
+    $(canvasDiv).html(gadgetUtil.getErrorText(msg));
+}
