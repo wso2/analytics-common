@@ -76,7 +76,7 @@
                         <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
                         <Bundle-Name>${project.artifactId}</Bundle-Name>
                         <Export-Package>
-                            org.wso2.carbon.data.agents.log4j.*
+                            org.wso2.carbon.analytics.shared.data.agents.log4j.*
                         </Export-Package>
                         <Import-Package>
                             org.apache.log4j.*,
