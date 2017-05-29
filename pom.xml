@@ -52,6 +52,7 @@
         <module>components/log4j</module>
         <module>components/spark-udf</module>
         <module>components/util</module>
+        <module>components/PDFTableGenerator</module>
         <module>features/log-analyzer</module>
         <module>features/log4j</module>
         <module>features/spark-udf</module>
