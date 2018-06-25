@@ -140,6 +140,8 @@ public class LocationResolverRdbms extends LocationResolver {
                     if (persistInDataBase) {
                         saveLocation(location, connection);
                     }
+                }else {
+                    location = new Location("N/A","N/A","N/A");
                 }
             }
         } catch (SQLException e) {
